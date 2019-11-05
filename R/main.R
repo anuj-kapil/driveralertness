@@ -22,7 +22,7 @@
 library(caret)
 library(mlbench)
 library(fscaret)
-library(xlsx)
+#library(xlsx)
 library(dplyr)
 library(psych)
 library(corrplot)
@@ -30,7 +30,6 @@ library(xgboost)
 library(ROCR)
 library(pROC)
 
-packrat::status()
 #######################################################################
 #                                                                     #
 #                          1 - LOADING DATA                           #
