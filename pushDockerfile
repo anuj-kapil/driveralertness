@@ -1,0 +1,3 @@
+FROM anujkapil/packratmanaged:1.0
+
+ADD R/main.R /home/rstudio/
