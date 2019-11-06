@@ -11,7 +11,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Build the Docker image
-      run: docker build . --file pushDockerfile --tag anujkapil/driver-alertness-analysis:$(date +%s)
+      run: docker build . --file pushDockerfile --tag anujkapil/driver-alertness-analysis:1.0
     
     - name: Push the Docker image
-      run: docker push anujkapil/driver-alertness-analysis:$(date +%s)
+      run: docker push anujkapil/driver-alertness-analysis:1.0
