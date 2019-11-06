@@ -14,7 +14,6 @@ jobs:
       run: docker build . --file pushDockerfile --tag anujkapil/driver-alertness-analysis:1.0
     
     - name: Push the Docker image
-      run: docker push anujkapil/driver-alertness-analysis:1.0
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        docker login -u=${{ secrets.DOCKER_USERNAME }} -p=${{ secrets.DOCKER_PASSWORD }}
+        docker push anujkapil/driver-alertness-analysis:1.0
