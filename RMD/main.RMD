@@ -1,0 +1,101 @@
+---
+title: "main"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(mlbench)
+library(fscaret)
+#library(xlsx)
+library(dplyr)
+library(psych)
+library(corrplot)
+library(xgboost)
+library(ROCR)
+library(pROC)
+```
+
+# Check
+
+```{r}
+##################################################################################
+#
+# Course:       32513 - Advanced Data Analytics Algorithms
+# Week:         
+# data source:  Kaggle
+# dataset:      Stay Alert! Ford Challenge
+# Filters:      
+#
+# Comments:     
+# From:         
+#
+##################################################################################
+
+#######################################################################
+#                                                                     #
+#                          1 - LOADING DATA                           #
+#                                                                     #
+#######################################################################
+
+##### Reading the file #####
+data <- read.csv("Data/fordTrain.csv",
+                 header=TRUE, stringsAsFactors=FALSE, na.strings = c("NA", ""),
+                 strip.white = TRUE, blank.lines.skip=TRUE, skip=0)
+
+validatedata <- read.csv("Data/fordTest.csv",
+                 header=TRUE, stringsAsFactors=FALSE, na.strings = c("NA", ""),
+                 strip.white = TRUE, blank.lines.skip=TRUE, skip=0)
+
+summary(data)
+summary(validatedata)
+
+#######################################################################
+#                                                                     #
+#                        2 - DATA UNDERSTANDING                       #
+#                                                                     #
+#######################################################################
+
+#To ensure steps are repeatable
+set.seed(131)
+
+#No of records
+nrow(data)
+
+#No of attributes
+ncol(data)
+
+#No missing values
+summary(data)
+
+#Formatting Dataset
+dput(names(data))
+data<-data[c("TrialID", "ObsNum", "P1", "P2", "P3", "P4", "P5", 
+             "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", 
+             "E9", "E10", "E11", "V1", "V2", "V3", "V4", "V5", "V6", "V7", 
+             "V8", "V9", "V10", "V11", "IsAlert")]
+
+#Descriptive Statistics
+psych::describe(data, fast = FALSE )
+```
+
+
+# Charts
+
+```{r,dpi=300, fig.width=7, fig.height=5, echo=T, results=F}
+
+hist_box_plots <- function(dat, x){
+  hist(dat[, x], main = paste0("Histogram of ",x), xlab=x, ylab="Frequency", col = "blue")
+  boxplot(dat[, x], main = paste0("Boxplot of ",x), xlab=x, col = "blue")
+}
+
+variables <- c("P1", "P2", "P3", "P4", "P5", 
+               "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", 
+               "E9", "E10", "E11", "V1", "V2", "V3", "V4", "V5", "V6", "V7", 
+               "V8", "V9", "V10", "V11")
+
+layout_matrix <- matrix(c(1:4), nrow = 2, ncol = 2, byrow = T)
+layout(mat = layout_matrix)
+lapply(variables, hist_box_plots, dat=data)
+```

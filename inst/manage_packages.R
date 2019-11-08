@@ -19,7 +19,10 @@ list.of.packages <- c(
   "corrplot",
   "xgboost",
   "ROCR",
-  "pROC"
+  "pROC",
+  "gridExtra",
+  "gbm",
+  "e1071"
 )
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
