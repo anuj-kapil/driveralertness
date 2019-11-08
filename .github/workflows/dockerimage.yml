@@ -16,4 +16,4 @@ jobs:
     - name: Push the Docker image
       run: |
         docker login -u=${{ secrets.DOCKER_USERNAME }} -p=${{ secrets.DOCKER_PASSWORD }}
-        docker push anujkapil/driver-alertness-analysis:1.0
+        docker push anujkapil/driver-alertness-analysis:1.1
