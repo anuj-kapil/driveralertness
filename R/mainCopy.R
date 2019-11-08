@@ -39,9 +39,6 @@ validatedata <- read.csv("Data/fordTest.csv",
                          strip.white = TRUE, blank.lines.skip = TRUE, skip = 0
 )
 
-summary(data)
-summary(validatedata)
-
 #######################################################################
 #                                                                     #
 #                        2 - DATA UNDERSTANDING                       #
@@ -51,32 +48,23 @@ summary(validatedata)
 # To ensure steps are repeatable
 set.seed(131)
 
-# No of records
-nrow(data)
-
-# No of attributes
-ncol(data)
-
 # No missing values
 summary(data)
 
 # Formatting Dataset
-dput(names(data))
 data <- data[c(
   "TrialID", "ObsNum", "P1", "P2", "P3", "P4", "P5",
-  "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-  "E9", "E10", "E11", "V1", "V2", "V3", "V4", "V5", "V6", "V7",
-  "V8", "V9", "V10", "V11", "IsAlert"
+  "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6",
+  "E7", "E8", "E9", "E10", "E11", "V1", "V2", "V3", "V4",
+  "V5", "V6", "V7", "V8", "V9", "V10", "V11", "IsAlert"
 )]
 
 # Descriptive Statistics
 psych::describe(data, fast = FALSE)
 
-
 ##### Printing the distribution of Result #####
 counts <- table(data$IsAlert)
 countsframe <- as.data.frame(counts)
-png(height = 500, width = 700, pointsize = 20, file = "barplot_IsAlert.png")
 ggplot(countsframe, aes(x = Var1, y = Freq)) +
   geom_bar(stat = "identity", fill = "#000099") +
   geom_text(aes(label = sprintf("%.2f%%", Freq / sum(Freq) * 100)),
@@ -84,43 +72,73 @@ ggplot(countsframe, aes(x = Var1, y = Freq)) +
   ) +
   scale_size_area() +
   ggtitle("Alertness Distribution") + xlab("IsAlert") + ylab("Frequency")
-dev.off()
 
 ##### Histogram and Box Plots #####
 
-hist_box_plots <- function(dat, x) {
-  hist(dat[, x], main = paste0("Histogram of ", x), xlab = x, ylab = "Frequency", col = "blue")
-  boxplot(dat[, x], main = paste0("Boxplot of ", x), xlab = x, col = "blue")
+#' Histogram and Box Plots Combined
+#'
+#' @param dat The data.frame containing the data
+#' @param columnname The variable in the data.frame whose plots are required
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples
+#' None recorded
+hist_box_plots <- function(dat, columnname) {
+  hist(dat[, columnname], main = paste0("Histogram of ", columnname), xlab = columnname, ylab = "Frequency", col = "blue")
+  boxplot(dat[, columnname], main = paste0("Boxplot of ", columnname), xlab = columnname, col = "blue")
 }
 
+# List of all variables for which we need histograms and box plots
 variables <- c(
-  "P1", "P2", "P3", "P4", "P5",
-  "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
-  "E9", "E10", "E11", "V1", "V2", "V3", "V4", "V5", "V6", "V7",
-  "V8", "V9", "V10", "V11"
+  "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8",
+  "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11",
+  "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11"
 )
 
+# The following statement are to set the graphics to be displayed in a particular order
+# This below statement tells the graphic engine to display the four images on one page
 layout_matrix <- matrix(c(1:4), nrow = 2, ncol = 2, byrow = T)
 layout(mat = layout_matrix)
-lapply(variables, hist_box_plots, dat = data)
 
+# This function basically loops all the variables and invokes hist_box_plots for each one of them
+# Prints the histogram for all the variables selected above
+lapply(variables, hist_box_plots, dat = data)
 
 ##### Overlaid Histograms #####
 
 data_alert <- data[data$IsAlert == "1", ]
 data_not_alert <- data[data$IsAlert == "0", ]
 
-stacked_bar_plots <- function(dat_a, dat_b, x) {
-  hist(dat_a[, x], main = paste0("Stacked Histogram of ", x), xlab = x, ylab = "Frequency", col = rgb(.5, .8, 1, 0.5))
-  hist(dat_b[, x], col = rgb(1, .5, .4, .5), add = T)
+#' Stacked Histograms
+#'
+#' @param dat_a TThe data.frame containing the data 1
+#' @param dat_b The data.frame containing the data 2
+#' @param columnname The variable in the data.frame whose plots are required
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples
+#' None recorded
+stacked_bar_plots <- function(dat_a, dat_b, columnname) {
+  hist(dat_a[, columnname], main = paste0("Stacked Histogram of ", columnname), xlab = columnname, ylab = "Frequency", col = rgb(.5, .8, 1, 0.5))
+  hist(dat_b[, columnname], col = rgb(1, .5, .4, .5), add = T)
   legend("topright", c("Alert", "Not Alert"), col = c(rgb(.5, .8, 1, 0.5), rgb(1, .5, .4, .5)), lwd = 10)
   box()
 }
 
+# List of all variables for which we need histograms and box plots
 variables <- c("P5", "P6", "E3", "E7", "E8", "E11", "V4", "V11")
 
+# The following statement are to set the graphics to be displayed in a particular order
+# This below statement tells the graphic engine to display the four images on one page
 layout_matrix <- matrix(c(1:4), nrow = 2, ncol = 2, byrow = T)
 layout(mat = layout_matrix)
+
+# This function basically loops all the variables and invokes stacked_bar_plots for each one of them
+# Prints the stacked barplots for all the variables selected above
 lapply(variables, stacked_bar_plots, dat_a = data_alert, dat_b = data_not_alert)
 
 ########### Repeated Measure Analysis ################
@@ -189,35 +207,30 @@ splitIndexMulti <- createDataPartition(datatemp$IsAlert, p = .01, list = FALSE, 
 trainDataset <- datatemp[splitIndexMulti[, 1], ]
 testDataset <- datatemp[splitIndexMulti[, 2], ]
 
-splitIndexMulti <- createDataPartition(datatemp$IsAlert, p = .01, list = FALSE, times = 1)
-
-trainDataset <- datatemp[splitIndexMulti, ]
-testDataset <- datatemp[-splitIndexMulti, ]
 dim(datatemp)
 dim(trainDataset)
 dim(testDataset)
 
-summary(trainDataset)
-trainDataset[c(1:60000), ]
 # Variable Importance
 
-fsModels2 <- c("glm", "gbm", "treebag", "ridge", "lasso", "rf", "xgbLinear")
-myFs2 <- fscaret(trainDataset, testDataset,
-                 myTimeLimit = 40, preprocessData = TRUE,
-                 Used.funcRegPred = fsModels2, with.labels = TRUE,
-                 supress.output = FALSE, no.cores = 2, installReqPckg = TRUE
+list_of_models <- c("glm", "gbm", "treebag", "ridge", "lasso", "rf", "xgbLinear")
+
+feature_selection_models <- fscaret(trainDataset, testDataset,
+                                    myTimeLimit = 40, preprocessData = TRUE,
+                                    Used.funcRegPred = fsModels2, with.labels = TRUE,
+                                    supress.output = FALSE, no.cores = 2, installReqPckg = TRUE
 )
 
-names(myFs2)
-myFs2$VarImp
-myFs2$PPlabels
-myFs2$VarImp$matrixVarImp.MSE
+names(feature_selection_models)
+feature_selection_models$VarImp
+feature_selection_models$PPlabels
+feature_selection_models$VarImp$matrixVarImp.MSE
 
-results <- myFs2$VarImp$matrixVarImp.MSE
+results <- feature_selection_models$VarImp$matrixVarImp.MSE
 results$Input_no <- as.numeric(results$Input_no)
 results <- results[c("SUM", "SUM%", "ImpGrad", "Input_no")]
-myFs2$PPlabels$Input_no <- as.numeric(rownames(myFs2$PPlabels))
-results <- merge(x = results, y = myFs2$PPlabels, by = "Input_no", all.x = T)
+feature_selection_models$PPlabels$Input_no <- as.numeric(rownames(feature_selection_models$PPlabels))
+results <- merge(x = results, y = feature_selection_models$PPlabels, by = "Input_no", all.x = T)
 results <- results[c("Labels", "SUM")]
 results <- subset(results, results$SUM != 0)
 results <- results[order(-results$SUM), ]
@@ -446,17 +459,6 @@ plot(roc_results4,
      legacy.axes = TRUE
 )
 legend("topright", c("XGBoost Reduced"))
-
-dev.off()
-# P8  converted to factor
-# E3  converted to factor
-# E8  converted to factor
-# E9  converted to factor
-# V5  converted to factor
-# V7  converted to factor
-# V9  converted to factor
-# V10  converted to factor
-
 
 ##### Preparing the validation dataset : Begin #######
 isAlertDataTest <- auto_convert_factors(validatedata, 10, cols_ignore = list("IsAlert"))

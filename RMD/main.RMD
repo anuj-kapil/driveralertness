@@ -1,6 +1,9 @@
 ---
-title: "Untitled"
-output: word_document
+title: "Driver Alertness Analysis"
+always_allow_html: yes
+output: 
+  github_document:
+  html_preview: false
 ---
   
 ```{r setup, include=FALSE}
@@ -17,6 +20,8 @@ library(pROC)
 library(gridExtra)
 #library(gbm)
 #library(e107)
+# To ensure steps are repeatable
+set.seed(131)
 ```
 
 # Preliminary Data Analysis
@@ -52,9 +57,7 @@ Each driver trail has been recorded in a simulated driving environment for a per
 
 The objective is to design a classifier that will detect whether the driver is alert or not alert using predictors like the driver’s physiological attributes combined with vehicular and environmental attributes acquired from the simulated environment. The outcome variable is also provide in the dataset and is labelled as IsAlert and is a binary (0 or 1) outcome where ‘1’ means alert and ‘0’ means not alert.  
 
-
-
-```{r}
+```{r, dpi=300}
 ##### Printing the distribution of Result #####
 counts <- table(data$IsAlert)
 countsframe<-as.data.frame(counts)
@@ -99,15 +102,17 @@ summary(data)
 
 Looking at the summary of the dataset, we can see that none of the variables have missing values otherwise the variable would have been summarized with a statistics of NA’s having a valid positive integer values.  
 
-**Repeated Measure Analysis**:
+**Repeated Measure Analysis**:  
 
-```{r}
+```{r, dpi=300}
 ########### Repeated Measure Analysis ################
 hist_data <- data %>% count(TrialID)
 hist(hist_data$n, main = "Histogram of repeated measures for each driver", 
      xlab="Number of Repeated Measures by Driver", ylab="Frequency", col = "blue"
      , breaks=seq(1160,1220,by=10))
 ```
+
+Not all of the 500 trails have 1211 observations each. This could be indicative of inconsistent instrumentation for data acquisition. These are assumed to be missing completely at random (unrelated to a predictor or outcome variables) to satisfy modelling assumptions. Hence, we will not remove the trails where the observations are less than 1211 as it will be a significant loss of information.  
 
 **Outlier Analysis**:
 Box plots and histograms of individual attributes can be found in the appendix.  
@@ -118,9 +123,9 @@ Looking at the box plot of P5, P6, E3, E7, E11 and V4 suggests that the data con
 
 
 **Multicollinearity Analysis**:
-Physiological attributes 3&4 and Vehicular attributes 1 is highly correlated with vehicular attribute 6 &10.  Only 1 from each mentioned set of correlated attributes will likely be used for this analysis. The plot below shows the collinearity among various attributes. Usually a threshold of .75 for coefficient of correlation is considered to be of high strength relationship. 
+Physiological attributes 3&4 and Vehicular attributes 1 is highly correlated with vehicular attribute 6 &10.  Only 1 from each mentioned set of correlated attributes will likely be used for this analysis. The plot below shows the collinearity among various attributes. Usually a threshold of .75 for coefficient of correlation is considered to be of high strength relationship.  
 
-```{r}
+```{r, dpi=300}
 ############ Correlation Analysis #####################
 cor_data_full <- data[,!(names(data) %in% c("IsAlert","TrialID","ObsNum","P8","V7","V9"))]
 
@@ -131,7 +136,7 @@ cor_mat_full <- cor(cor_data_full, use="complete.obs")
 corrplot.mixed(cor_mat_full, lower="number", upper="circle")
 ```
 
-#Data Preparation
+# Data Preparation
 
 ## Variable Importance
 
@@ -146,10 +151,12 @@ For this technique to work, the data needs to be formatted in multiple in, singl
 
 ```{r}
 #Formatting Dataset
-data<-data[c("TrialID", "ObsNum", "P1", "P2", "P3", "P4", "P5", 
-             "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", 
-             "E9", "E10", "E11", "V1", "V2", "V3", "V4", "V5", "V6", "V7", 
-             "V8", "V9", "V10", "V11", "IsAlert")]
+data <- data[c(
+  "TrialID", "ObsNum", "P1", "P2", "P3", "P4", "P5",
+  "P6", "P7", "P8", "E1", "E2", "E3", "E4", "E5", "E6",
+  "E7", "E8", "E9", "E10", "E11", "V1", "V2", "V3", "V4",
+  "V5", "V6", "V7", "V8", "V9", "V10", "V11", "IsAlert"
+)]
 ```
 
 As mention in the descriptive analysis, some of the variables in the dataset appear to be categorical in nature. We will convert those variables to factor using a custom function.  
@@ -203,32 +210,35 @@ dim(testDataset)
 
 Finally, we need to select an ensemble of models and feed the data and list of models to the main function of the fscaret package named as its package, fscaret. Since our problem is a classification problem, we can choose either the models specific for classification or dual purpose modes (classification and regression). We have chosen seven models here.  
 
-```{r}
+```{r echo=T, results='hide'}
 
 #Variable Importance
-fsModels2 <- c("glm","gbm","treebag","ridge","lasso","rf","xgbLinear")
-myFs2<-fscaret(trainDataset, testDataset, myTimeLimit = 40, preprocessData = TRUE,
-               Used.funcRegPred = fsModels2, with.labels = TRUE,
-               supress.output=FALSE, no.cores = 2, installReqPckg = TRUE)
+list_of_models <- c("glm", "gbm", "treebag", "ridge", "lasso", "rf", "xgbLinear")
+
+feature_selection_models <- fscaret(trainDataset, testDataset,
+                                    myTimeLimit = 40, preprocessData = TRUE,
+                                    Used.funcRegPred = list_of_models, with.labels = TRUE,
+                                    supress.output = TRUE, no.cores = 2, installReqPckg = TRUE
+)
 ```
 
-The output of the fscaret function (myFs) holds a lot of information. One of the most interesting result set is the $VarImp$matrixVarImp.MSE (Mean Squared Error). This returns the top variables from the perspective of all models involved (the MSE is scaled to compare each model equally):  
+The output of the fscaret function (feature_selection_models) holds a lot of information. One of the most interesting result set is the VarImp$matrixVarImp.MSE (Mean Squared Error). This returns the top variables from the perspective of all models involved (the MSE is scaled to compare each model equally):  
 
 ```{r}
-names(myFs2)
-myFs2$VarImp
-myFs2$PPlabels
-myFs2$VarImp$matrixVarImp.MSE
+names(feature_selection_models)
+feature_selection_models$VarImp
+feature_selection_models$PPlabels
+feature_selection_models$VarImp$matrixVarImp.MSE
 ```
 
 The input_no is actually the numeric label for each of the attributes. This can be reformatted as shown below to show the actual variables and are listed in the descending order of their importance. For example, the above output, input_no 28 means V11 variable and the input_no 19 is the E9.1 variable which is the dummified version of E9 variable.  
 
 ```{r}
-results <- myFs2$VarImp$matrixVarImp.MSE
+results <- feature_selection_models$VarImp$matrixVarImp.MSE
 results$Input_no <- as.numeric(results$Input_no)
 results <- results[c("SUM","SUM%","ImpGrad","Input_no")]
-myFs2$PPlabels$Input_no <-  as.numeric(rownames(myFs2$PPlabels))
-results <- merge(x=results, y=myFs2$PPlabels, by="Input_no", all.x=T)
+feature_selection_models$PPlabels$Input_no <-  as.numeric(rownames(feature_selection_models$PPlabels))
+results <- merge(x=results, y=feature_selection_models$PPlabels, by="Input_no", all.x=T)
 results <- results[c('Labels', 'SUM')]
 results <- subset(results,results$SUM !=0)
 results <- results[order(-results$SUM),]
@@ -248,7 +258,7 @@ The first step is choosing a model. We will use Stochastic Gradient Boosting (gb
 **Basic Parameter Tuning**  
 We will use 5-fold stratified repeated cross validation using the traincontrol function to estimate model performance and generalize the model to limit over fitting.  
 
-```{r}
+```{r echo=T, results='hide'}
 # Uses caret library, doing Automatic grid search (possible to do manual one as well)
 
 modelTrain<-trainDataset
@@ -273,7 +283,7 @@ In the above trainControl function, we are asking to compute additional performa
 
 We will now use the train function of the caret package to train our two models. The same models are trained on the complete dataset and reduced dataset (Removing highly correlated variables). We will customise the tuning process by using pre-processing options of centring, scaling and imputation. We do not have missing values in our dataset, hence imputation won’t be required.  
 
-```{r}
+```{r echo=T, results='hide'}
 model1 <- train(IsAlert ~ ., 
                 data = modelTrain[,!(names(modelTrain) %in% c("TrialID","ObsNum","P8","V7","V9"))], 
                 method = "gbm",          
@@ -290,7 +300,8 @@ model2 <- train(IsAlert ~ .,
                 na.action = na.pass,
                 preProcess = c("center", "scale", "medianImpute"),
                 trControl = control)
-
+```
+```{r}
 # Check out the hyperparameters 
 print(model1)
 ```
