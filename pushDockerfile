@@ -1,5 +1,10 @@
-FROM anujkapil/packratmanaged:1.0
+FROM anujkapil/packratmanaged:1.1
 
 ADD R/main.R /home/rstudio/packtest/R/
 ADD Data/fordTest.csv /home/rstudio/packtest/Data/fordTest.csv
 ADD Data/fordTrain.csv /home/rstudio/packtest/Data/fordTrain.csv
+ADD RMD/main.RMD /home/rstudio/packtest/RMD/
+ADD RMD/Data/fordTest.csv /home/rstudio/packtest/RMD/Data/fordTest.csv
+ADD RMD/Data/fordTrain.csv /home/rstudio/packtest/RMD/Data/fordTrain.csv
+ADD RMD/main.docx /home/rstudio/packtest/RMD/
+ADD RMD/main.md /home/rstudio/packtest/RMD/

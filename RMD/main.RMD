@@ -1,9 +1,9 @@
 ---
-  title: "Untitled"
+title: "Untitled"
 output: word_document
 ---
   
-  ```{r setup, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(caret)
 library(mlbench)
@@ -20,7 +20,9 @@ library(gridExtra)
 ```
 
 # Preliminary Data Analysis
+
 ## Source
+
 The dataset is publically available on kaggle’s website as a part of competition held five years ago on 19th Jan, 2011 under the name of “Stay Alert! The Ford Challenge”.
 
 ```{r}
@@ -47,6 +49,7 @@ The dataset of 604329 observations consists of 100 drivers of both genders, of d
 * Vehicular (11 features) defined simply as V1 to V11.  
 
 Each driver trail has been recorded in a simulated driving environment for a period of 2 minutes and an observation recorded every 100 milliseconds. Each driver’s trail has been defined uniquely and labelled at TrialID and every observation within each trail is defined uniquely and labelled as ObsNum.  
+
 The objective is to design a classifier that will detect whether the driver is alert or not alert using predictors like the driver’s physiological attributes combined with vehicular and environmental attributes acquired from the simulated environment. The outcome variable is also provide in the dataset and is labelled as IsAlert and is a binary (0 or 1) outcome where ‘1’ means alert and ‘0’ means not alert.  
 
 
@@ -93,6 +96,7 @@ The response variable IsAlert is definitely a categorical variable with possible
 #No missing values
 summary(data)
 ```
+
 Looking at the summary of the dataset, we can see that none of the variables have missing values otherwise the variable would have been summarized with a statistics of NA’s having a valid positive integer values.  
 
 **Repeated Measure Analysis**:
@@ -106,9 +110,12 @@ hist(hist_data$n, main = "Histogram of repeated measures for each driver",
 ```
 
 **Outlier Analysis**:
-Box plots and histograms of individual attributes can be found in the appendix. 
-All variables have some outliers. In some cases these are quite extreme. We are unable to determine if these from data quality issues or true values as we don’t have the data description of each of the attributes.
+Box plots and histograms of individual attributes can be found in the appendix.  
+
+All variables have some outliers. In some cases these are quite extreme. We are unable to determine if these from data quality issues or true values as we don’t have the data description of each of the attributes.  
+
 Looking at the box plot of P5, P6, E3, E7, E11 and V4 suggests that the data consists mostly of zeroes. However we can’t simply exclude them from analysis as outliers might be a key contributor in predicting the outcome variable. It would be good to look at the distribution of outcome variable for these attributes. For this we will split the dataset based on outcome variable as alert and not alert dataset. Looking at the overlaid histogram (included in the appendix) of the above attributes, we can see that these variables are almost equally distributed among the two subsets. Hence, we will include these attributes in our analysis.  
+
 
 **Multicollinearity Analysis**:
 Physiological attributes 3&4 and Vehicular attributes 1 is highly correlated with vehicular attribute 6 &10.  Only 1 from each mentioned set of correlated attributes will likely be used for this analysis. The plot below shows the collinearity among various attributes. Usually a threshold of .75 for coefficient of correlation is considered to be of high strength relationship. 
@@ -125,8 +132,11 @@ corrplot.mixed(cor_mat_full, lower="number", upper="circle")
 ```
 
 #Data Preparation
+
 ## Variable Importance
+
 We have already dropped three variables namely P8, V7 and V9 because they are all zeroes. We have already done the collinearity analysis to find out the highly correlated variables, which will help us in dimensionality reduction.  
+
 Another technique which we are going to use is Ensemble Feature Selection using fscaret package in R to find out individual variable importance. The fscaret package is closely related to caret package in R and uses the underlying caret function to get its job done. The ensemble feature selection takes in a data set and a list of models and, in return, fscaret will scale and return the importance of each variable for each model and for the ensemble of models. The tool extracts the importance of each variable by using the selected models’ VarImp or similar measuring function. For example, linear models use the absolute value of the t-statistic for each parameter and decision-tree models, total the importance of the individual trees, etc. It returns individual and combined MSEs and RMSEs:   
 
 MSE (Mean Squared Error): the variance of the estimator  
@@ -163,6 +173,7 @@ auto_convert_factors <- function(data, cat_threshold=10, cols_ignore=list()) {
 
 isAlertData <- auto_convert_factors(data, 10, cols_ignore = list('IsAlert'))
 ```
+
 Next step is to dummify the factor variables. To do that, we will use some of the caret functions.  
 
 ```{r}
@@ -175,19 +186,21 @@ isAlertData<-isAlertData[c("P1", "P2", "P3", "P4", "P5",
 datadummy<-dummyVars("~.",data=isAlertData,fullRank = F)
 datatemp<-as.data.frame(predict(datadummy,isAlertData))
 ```
+
 We now need a training and a test dataset, for which, again we will use a **caret** function called *createDataPartition*.  
 
 ```{r}
 #Partitioning dataset in to training and test dataset.
-splitIndexMulti <- createDataPartition(datatemp$IsAlert, p=.01, list = FALSE, times = 1)
+splitIndexMulti <- createDataPartition(datatemp$IsAlert, p=.01, list = FALSE, times = 2)
 
-trainDataset <- datatemp[splitIndexMulti,]
-testDataset <- datatemp[-splitIndexMulti,]
+trainDataset <- datatemp[splitIndexMulti[,1],]
+testDataset <- datatemp[splitIndexMulti[,2],]
 
 dim(datatemp)
 dim(trainDataset)
 dim(testDataset)
 ```
+
 Finally, we need to select an ensemble of models and feed the data and list of models to the main function of the fscaret package named as its package, fscaret. Since our problem is a classification problem, we can choose either the models specific for classification or dual purpose modes (classification and regression). We have chosen seven models here.  
 
 ```{r}
@@ -221,9 +234,11 @@ results <- subset(results,results$SUM !=0)
 results <- results[order(-results$SUM),]
 print(results)
 ```
+
 The most import variable is the vehicular attribute 11 to predict the alertness of the driver. The next most important variable is the categorical variable E9 and to be precise the E9 being ‘1’. Also, from the MSE output it is noted that the different models have predicted the variable importance differently. For example, the most important variable as per the GBM, XGBoost models is V11 while E9.1 is the most important variable as per GLM, lasso and ridge. It is also noted that the above function has dropped two variables, namely P4 and V1 from its analysis which we found to be highly correlated with P3 and V6, V10 respectively. So, we can drop the two variables P4 and V1 from our dataset for modelling purposes.  
 
 # Modelling and Evaluation
+
 ## Tuning and Modelling
 
 We will again use the caret package in R to build our models and evaluate them. The train function in the package will be used for evaluating the effect of model tuning parameters on performance using resampling, choosing the optimal model across these parameters and estimating the model performance from a training set.  
@@ -238,7 +253,6 @@ We will use 5-fold stratified repeated cross validation using the traincontrol f
 
 modelTrain<-trainDataset
 modelTrain$IsAlert <- as.factor(ifelse(modelTrain$IsAlert == 1,'Y','N'))
-
 
 modelTest<-testDataset
 modelTest$IsAlert <- as.factor(ifelse(modelTest$IsAlert == 1,'Y','N'))
@@ -314,9 +328,6 @@ Area under the ROC curve (AUC) is used for flexibility in deciding between minim
 * For other evaluation methods, a user has to choose a cut-off point above which the target variable is part of the positive class (e.g. a logistic regression model returns any real number between 0 and 1 - the modeller might decide that predictions greater than 0.5 mean a positive class prediction while a prediction of less than 0.5 mean a negative class prediction). AUC evaluates entries at all cut-off points, giving better insight into how well the classifier is able to separate the two classes.  
 
 The key metric used in the interpretation of results is the accuracy computed in the confusion matrix and area under the ROC curves computed using the twoClassSummary function. See appendix for complete ROC curves.  
-
-
-
 
 We have got a separate dataset which we have used to validate our trained models. The validation dataset is completely new dataset for the models as it was never used in training the models. The training and test dataset were derived from the original dataset using createDataPartition function of the caret package and were used to train the models. The first set of results are from the test dataset derived from original dataset and second set of results are the real tests on the validation dataset which consists of 120840 observation having the same number and type of attributes as the original dataset.  
 
